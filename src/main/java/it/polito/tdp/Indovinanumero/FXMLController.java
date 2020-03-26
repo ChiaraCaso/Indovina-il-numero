@@ -1,7 +1,10 @@
 package it.polito.tdp.Indovinanumero;
 
 import java.net.URL;
+import java.security.InvalidParameterException;
 import java.util.ResourceBundle;
+
+import it.polito.tdp.Indovinanumero.model.Model;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
@@ -11,11 +14,7 @@ import javafx.scene.layout.HBox;
 
 public class FXMLController {
 	
-	private final int NMAX = 100;
-	private final int TMAX = 8;
-	private int segreto ; 
-	private int tentativiFatti;
-	private boolean inGioco = false; 
+	private Model model;
 	
     @FXML
     private ResourceBundle resources;
@@ -43,16 +42,13 @@ public class FXMLController {
 
     @FXML
     void doNuova(ActionEvent event) {
-    	//gestione dell'inizio di una nuova partita -Logica del gioco
-    	this.segreto = (int) (Math.random()*NMAX) +1 ;
-    	this.tentativiFatti = 0;
-    	this.inGioco = true;
+    	//comunico al modello che voglio iniziare una partia
+    	this.model.nuovaPartita();
     	
-    	//gestione interfaccia
+    	//gestione interfaccia (puramente grafiche)
     	layoutTentativo.setDisable(false);
     	txtRisultato.clear();
-    	txtRimasti.setText(Integer.toString(TMAX));
-    	
+    	txtRimasti.setText(Integer.toString(this.model.getTMAX()));
     }
 
     @FXML
@@ -66,30 +62,25 @@ public class FXMLController {
     		txtRisultato.appendText("Devi inserire un numero!\n");
     		return;
     	}
-    	this.tentativiFatti++;
-    	
-    	if(tentativo == this.segreto) {
-    		//ho indovinato
-    		txtRisultato.appendText("Hai vinto!!! Hai utilizzato : "+ this.tentativiFatti + " tentativi");
-    		layoutTentativo.setDisable(true);
-    		this.inGioco = false;
+    	int risultato = -1;
+    	try {
+    	risultato = this.model.Tentativo(tentativo);
+    	} catch (IllegalStateException se) {
+    		txtRisultato.appendText(se.getMessage());
+    		return;
+    	} catch (InvalidParameterException pe) {
+    		txtRisultato.appendText(pe.getMessage());
     		return;
     	}
-    	
-    	if(tentativiFatti == TMAX) {
-    		//ho esaurito i tentativi -> Ho perso
-    		txtRisultato.appendText("Hai perso!!! Il numero segreto era : "+ this.segreto);
-    		layoutTentativo.setDisable(true);
-    		this.inGioco = false;
-    		return;
-    	}
-    	//devo informare l'utente se il tentativo è troppo alto o troppo basso
-    	if(tentativo<this.segreto)
+    	if(risultato == 0) {
+    		txtRisultato.appendText("Hai vinto!!! Hai vinto con "+model.getTentativiFatti()+ " tentativi");
+    	} else if(risultato == -1) {
     		txtRisultato.appendText("Tentativo troppo basso \n");
-    	else 
+    	} else {
     		txtRisultato.appendText("Tentativo troppo alto \n");
+    	}
     	
-    	txtRimasti.setText(Integer.toString(TMAX-tentativiFatti));
+    	txtRimasti.setText(Integer.toString(this.model.getTMAX()-this.model.getTentativiFatti()));
     }
 
     @FXML
@@ -101,5 +92,10 @@ public class FXMLController {
         assert txtTentativi != null : "fx:id=\"txtTentativi\" was not injected: check your FXML file 'Scene.fxml'.";
         assert btnProva != null : "fx:id=\"btnProva\" was not injected: check your FXML file 'Scene.fxml'.";
 
+       // this.model = new Model(); //concettualmente rischioso -> non tengo i concetti separati
+    }
+    //facendo così i concetti sono disaccoppiati, il model può cambiare senza che il controller debba cambiare
+    public void setModel (Model model) {
+    	this.model = model;
     }
 }
